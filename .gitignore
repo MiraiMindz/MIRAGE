@@ -1,0 +1,4 @@
+bin/
+build/
+gmon.out
+lib/GLAD/
