@@ -673,7 +673,8 @@ void cast_scene() {
             float delta_y = _y - ((float)WINDOW_WIDTH / 4);
             float degrees = degree_to_radian(rays_angle);
             float rays_angle_fix = cos(degree_to_radian(fix_angle(player_angle - rays_angle)));
-            int projection_angle = (int)((0.5 * MAP_WIDTH * MAP_CELL_SIZE) / ((0.5 * WINDOW_WIDTH) / (5.0 / MAP_HEIGHT * WINDOW_HEIGHT)));
+            // int projection_angle = (int)((0.5 * MAP_WIDTH * MAP_CELL_SIZE) / ((0.5 * WINDOW_WIDTH) / (5.0 / MAP_HEIGHT * WINDOW_HEIGHT)));
+            int projection_angle = ((float)DRAW_LINE_WIDTH_3D / 2) / tan((float)RAYS_COUNT / 2);
             texture_x = player_pos_x / 2 + cos(degrees) * projection_angle * 32 / delta_y / rays_angle_fix;
             texture_y = player_pos_y / 2 - sin(degrees) * projection_angle * 32 / delta_y / rays_angle_fix;
             
