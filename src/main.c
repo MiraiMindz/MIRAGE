@@ -5,10 +5,12 @@
  * This is the first iteration of the Engine, just a 2D and 3D viewer combined.
 ******************************************************************************/
 
+#include <GL/freeglut_std.h>
 #include <math.h>
 
 #include <GL/gl.h>
 #include <GL/glut.h>
+#include <GLFW/glfw3.h>
 
 // Macro Constants
 #define PI                          3.14159265358979323846
@@ -43,13 +45,14 @@
 #define RGB_COLOR_BLUE              0,      0,      1
 
 // Player Macros
-#define PLAYER_MOV_STEP             4
+#define PLAYER_MOV_STEP             0.2
 #define PLAYER_ROT_DEG              0.1
 #define PLAYER_DELTA_AMP            16
 #define FACE_NORTH                  90
 #define FACE_EAST                   180
 #define FACE_WEST                   0
 #define FACE_SOUTH                  270
+#define COLLISION_OFFSET            8
 
 // Map Macros
 #define GRID_OUTLINE                1
@@ -63,6 +66,13 @@
 #define LINE_X_OFFSET               8
 #define LINE_Y_OFFSET               8
 
+
+typedef struct {
+    int up, left, right, down;
+} ButtonKeys;
+
+ButtonKeys keys;
+
 // Utility Functions
 
 // This function exists to convert between degrees to radians 
@@ -72,7 +82,7 @@ float degree_to_radian(int angle) {
 }
 
 // Fixes any odd/decimal angles, and cap them between a range.
-int fix_angle(int angle) {
+float fix_angle(int angle) {
     if (angle > 359) {
         angle -= 360;
     } else if (angle < 0) {
@@ -86,6 +96,14 @@ int fix_angle(int angle) {
 float distance(int ax, int ay, int bx, int by, int angle) {
     return cos(degree_to_radian(angle)) * (bx - ax) - sin(degree_to_radian(angle)) * (by - ay);
 }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void resize(int width, int height) {
+    glutReshapeWindow(WINDOW_WIDTH, WINDOW_HEIGHT);
+}
+#pragma GCC diagnostic pop
 
 // Map Section
 
@@ -105,7 +123,7 @@ const int MAP[] = {
     1, 0, 1, 0, 0, 0, 0, 1,
     1, 0, 1, 0, 1, 0, 0, 1,
     1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 1,
+    1, 0, 1, 1, 0, 1, 0, 1,
     1, 0, 0, 0, 0, 1, 0, 1,
     1, 0, 0, 0, 0, 0, 0, 1,
     1, 1, 1, 1, 1, 1, 1, 1,
@@ -159,33 +177,108 @@ void draw_player_2d() {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-// This function holds all the I/O logic of the program, mainly concerned to the
-// player.
-void player_controllers(unsigned char key, int x, int y) {
+void key_down(unsigned char key, int x, int y) {
     switch (key) {
-        case 'a':
-            player_angle = fix_angle(player_angle + PLAYER_MOV_STEP);
-            player_delta_x = cos(degree_to_radian(player_angle));
-            player_delta_y = -sin(degree_to_radian(player_angle));
-            break;
-        case 'd':
-            player_angle = fix_angle(player_angle - PLAYER_MOV_STEP);
-            player_delta_x = cos(degree_to_radian(player_angle));
-            player_delta_y = -sin(degree_to_radian(player_angle));
-            break;
         case 'w':
-            player_pos_x += player_delta_x * PLAYER_MOV_STEP;
-            player_pos_y += player_delta_y * PLAYER_MOV_STEP;
+            keys.up = 1;
+            break;
+        case 'a':
+            keys.left = 1;
             break;
         case 's':
-            player_pos_x -= player_delta_x * PLAYER_MOV_STEP;
-            player_pos_y -= player_delta_y * PLAYER_MOV_STEP;
+            keys.down = 1;
+            break;
+        case 'd':
+            keys.right = 1;
             break;
     }
+
     glutPostRedisplay();
 }
+
+void key_up(unsigned char key, int x, int y) {
+    switch (key) {
+        case 'w':
+            keys.up = 0;
+            break;
+        case 'a':
+            keys.left = 0;
+            break;
+        case 's':
+            keys.down = 0;
+            break;
+        case 'd':
+            keys.right = 0;
+            break;
+    }
+
+    glutPostRedisplay();
+}
+
 #pragma GCC diagnostic pop
 
+// Update the keys.
+void update_keys(float frames_per_second) {
+    int x_offset = 0;
+    int y_offset = 0;
+
+    if (player_delta_x < 0) {
+        x_offset = -COLLISION_OFFSET;
+    } else {
+        x_offset = COLLISION_OFFSET;
+    }
+
+    if (player_delta_y < 0) {
+        y_offset = -COLLISION_OFFSET;
+    } else {
+        y_offset = COLLISION_OFFSET;
+    }
+
+    // Collision Variables
+    int player_x_grid_position = player_pos_x / 64.0;
+    int player_x_grid_position_add_offset = (player_pos_x + x_offset) / 64.0;
+    int player_x_grid_position_sub_offset = (player_pos_x - x_offset) / 64.0;
+
+    int player_y_grid_position = player_pos_y / 64.0;
+    int player_y_grid_position_add_offset = (player_pos_y + y_offset) / 64.0;
+    int player_y_grid_position_sub_offset = (player_pos_y - y_offset) / 64.0;
+
+    if (keys.left == 1) {
+        player_angle = fix_angle(player_angle + (PLAYER_MOV_STEP * frames_per_second));
+        player_delta_x = cos(degree_to_radian(player_angle));
+        player_delta_y = -sin(degree_to_radian(player_angle));
+    }
+
+    if (keys.right == 1) {
+        player_angle = fix_angle(player_angle - (PLAYER_MOV_STEP * frames_per_second));
+        player_delta_x = cos(degree_to_radian(player_angle));
+        player_delta_y = -sin(degree_to_radian(player_angle));
+    }
+
+    // Collision Logic
+    if (keys.up == 1) {
+        if (MAP[player_y_grid_position * MAP_WIDTH + player_x_grid_position_add_offset] == 0) {
+            player_pos_x += player_delta_x * (PLAYER_MOV_STEP * frames_per_second);
+        }
+        
+        if (MAP[player_y_grid_position_add_offset * MAP_WIDTH + player_x_grid_position] == 0) {
+            player_pos_y += player_delta_y * (PLAYER_MOV_STEP * frames_per_second);
+        }
+    }
+    
+    if (keys.down == 1) {
+        if(MAP[player_y_grid_position * MAP_WIDTH + player_x_grid_position_sub_offset] == 0){ 
+            player_pos_x -= player_delta_x * (PLAYER_MOV_STEP * frames_per_second);
+        }
+        
+        if(MAP[player_y_grid_position_sub_offset* MAP_WIDTH + player_x_grid_position] == 0) {
+            player_pos_y -= player_delta_y * (PLAYER_MOV_STEP * frames_per_second);
+        }
+    }
+    
+
+    glutPostRedisplay();
+}
 
 // Ray cast and Walls Section
 
@@ -336,7 +429,12 @@ void init() {
     player_delta_y = -sin(degree_to_radian(player_angle));
 }
 
-void display() {   
+float frame_1, frame_2, frames_per_second;
+void display() {
+    frame_2 = glutGet(GLUT_ELAPSED_TIME);
+    frames_per_second = (frame_2 - frame_1);
+    frame_1 = glutGet(GLUT_ELAPSED_TIME);
+    update_keys(frames_per_second);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
     draw_map_2d();
     draw_player_2d();
@@ -345,13 +443,16 @@ void display() {
 }
 
 int main(int argc, char* argv[]) { 
+    
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
     glutCreateWindow(WINDOW_TITLE);
     init();
     glutDisplayFunc(display);
-    glutKeyboardFunc(player_controllers);
+    glutReshapeFunc(resize);
+    glutKeyboardFunc(key_down);
+    glutKeyboardUpFunc(key_up);
     glutMainLoop();
 
     return 0;

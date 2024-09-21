@@ -1,5 +1,5 @@
 CC=gcc
-OPENGLFLAGS=-lGL -lGLU -lglut
+OPENGLFLAGS=-lGL -lGLU -lglut -lglfw
 MATHLIBFLAGS=-lm
 CFLAGS=-O3 -Wall -Wextra -Werror -Wshadow -Wformat -Wreturn-type -Wuninitialized -ggdb -g -pg -march=native -pedantic -std=c23 -fsanitize=address $(MATHLIBFLAGS) $(OPENGLFLAGS)
 BINDIR=bin
