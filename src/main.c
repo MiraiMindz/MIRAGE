@@ -1,8 +1,6 @@
 /******************************************************************************
  * This is the start of the MIRAGE Game Engine, the idea is to create a RayCast
  * basic engine to make DOOM/Wolfeinstain3D like games.
- *
- * This is the first iteration of the Engine, just a 2D and 3D viewer combined.
 ******************************************************************************/
 
 #include <GL/freeglut_std.h>
@@ -53,6 +51,7 @@
 #define FACE_WEST                   0
 #define FACE_SOUTH                  270
 #define COLLISION_OFFSET            8
+#define INTERACTION_OFFSET          12
 
 // Map Macros
 #define GRID_OUTLINE                1
@@ -63,15 +62,169 @@
 
 // 3D Macros
 #define DRAW_LINE_WIDTH_3D          8
-#define LINE_X_OFFSET               8
-#define LINE_Y_OFFSET               8
+#define LINE_X_OFFSET               0
+#define LINE_Y_OFFSET               0
 
-
+// Types
 typedef struct {
     int up, left, right, down;
 } ButtonKeys;
 
+
+// Globals
 ButtonKeys keys;
+
+// 32x32 Textures
+int ALL_TEXTURES[] = {
+    //Checkerboard
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,1,1,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,1,1,1,1,1,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,1,1,1,1,1,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,1,1,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0,
+
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,
+
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0, 
+    
+    //Brick
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+    
+    //Window
+    1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,    
+        
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 
+
+    1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,   
+        
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,  
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 
+    1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 
+    
+    //Door
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,    
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,    
+    0,0,0,1,1,1,1,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,1,1,1,1,0,0,0,  
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,  
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,   
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,     
+
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,  
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,    
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,    
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,   
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,  
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,  
+    0,0,0,1,0,0,0,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,0,0,0,1,0,0,0,  
+    0,0,0,1,1,1,1,1, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 1,1,1,1,1,0,0,0,  
+
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,1,0,1, 1,0,1,0,0,0,0,0, 0,0,0,0,0,0,0,0,  
+    0,0,0,0,0,0,0,0, 0,0,1,1,1,1,0,1, 1,0,1,1,1,1,0,0, 0,0,0,0,0,0,0,0,   
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,    
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,    
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,   
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0, 
+
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,  
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,     
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,   
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,   
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,   
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,  
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,   
+    0,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,0,         
+};
+
 
 // Utility Functions
 
@@ -118,23 +271,46 @@ const int MAP_HEIGHT    = 8;
 // The map is a simple binary array, were 1 represents a wall and 0 not.
 // becase the map is a 8x8 grid, this array needs to have 64 values to fully
 // represent the map.
-const int MAP[] = {
-    1, 1, 1, 1, 1, 1, 1, 1,
+int MAP_WALLS[] = {
+    1, 1, 1, 3, 1, 3, 3, 1,
+    1, 0, 1, 0, 2, 0, 0, 1,
+    1, 0, 1, 0, 2, 4, 2, 1,
     1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 1, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 1, 1, 0, 1, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 1,
+    1, 4, 1, 1, 0, 1, 0, 1,
+    1, 0, 0, 0, 0, 1, 0, 3,
     1, 0, 0, 0, 0, 0, 0, 1,
-    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 3, 1, 3, 3, 1, 1, 1,
 };
+
+int MAP_FLOOR[] = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 3, 0,
+    0, 0, 0, 0, 0, 0, 3, 0,
+    0, 2, 2, 2, 2, 0, 3, 0,
+    0, 2, 2, 2, 2, 2, 3, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+int MAP_CEILING[] = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 3, 0,
+    0, 0, 0, 0, 0, 0, 3, 0,
+    0, 2, 2, 2, 2, 0, 3, 0,
+    0, 2, 2, 2, 2, 2, 3, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
+
 
 // Iterates through the map and draws the quadrants of it.
 void draw_map_2d() {
     int x, y, xOffset, yOffset;
     for (y = 0; y < MAP_HEIGHT; y++) {
         for (x = 0; x < MAP_WIDTH; x++) {
-            if (MAP[y * MAP_WIDTH + x] == 1) {
+            if (MAP_WALLS[y * MAP_WIDTH + x] > 0) {
                 glColor3f(RGB_COLOR_WHITE);
             } else {
                 glColor3f(RGB_COLOR_BLACK);
@@ -174,6 +350,30 @@ void draw_player_2d() {
     glEnd();
 }
 
+void open_door() {
+    int x_offset = 0;
+    int y_offset = 0;
+
+    if (player_delta_x < 0) {
+        x_offset = -INTERACTION_OFFSET;
+    } else {
+        x_offset = INTERACTION_OFFSET;
+    }
+
+    if (player_delta_y < 0) {
+        y_offset = -INTERACTION_OFFSET;
+    } else {
+        y_offset = INTERACTION_OFFSET;
+    }
+    int player_x_grid_position_add_offset = (player_pos_x + x_offset) / 64.0;
+
+    int player_y_grid_position_add_offset = (player_pos_y + y_offset) / 64.0;
+
+    if (MAP_WALLS[player_y_grid_position_add_offset * MAP_WIDTH + player_x_grid_position_add_offset] == 4) {
+        MAP_WALLS[player_y_grid_position_add_offset * MAP_WIDTH + player_x_grid_position_add_offset] = 0;
+    }
+}
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -190,6 +390,9 @@ void key_down(unsigned char key, int x, int y) {
             break;
         case 'd':
             keys.right = 1;
+            break;
+        case 'e':
+                open_door();
             break;
     }
 
@@ -257,21 +460,21 @@ void update_keys(float frames_per_second) {
 
     // Collision Logic
     if (keys.up == 1) {
-        if (MAP[player_y_grid_position * MAP_WIDTH + player_x_grid_position_add_offset] == 0) {
+        if (MAP_WALLS[player_y_grid_position * MAP_WIDTH + player_x_grid_position_add_offset] == 0) {
             player_pos_x += player_delta_x * (PLAYER_MOV_STEP * frames_per_second);
         }
         
-        if (MAP[player_y_grid_position_add_offset * MAP_WIDTH + player_x_grid_position] == 0) {
+        if (MAP_WALLS[player_y_grid_position_add_offset * MAP_WIDTH + player_x_grid_position] == 0) {
             player_pos_y += player_delta_y * (PLAYER_MOV_STEP * frames_per_second);
         }
     }
     
     if (keys.down == 1) {
-        if(MAP[player_y_grid_position * MAP_WIDTH + player_x_grid_position_sub_offset] == 0){ 
+        if(MAP_WALLS[player_y_grid_position * MAP_WIDTH + player_x_grid_position_sub_offset] == 0){ 
             player_pos_x -= player_delta_x * (PLAYER_MOV_STEP * frames_per_second);
         }
         
-        if(MAP[player_y_grid_position_sub_offset* MAP_WIDTH + player_x_grid_position] == 0) {
+        if(MAP_WALLS[player_y_grid_position_sub_offset* MAP_WIDTH + player_x_grid_position] == 0) {
             player_pos_y -= player_delta_y * (PLAYER_MOV_STEP * frames_per_second);
         }
     }
@@ -313,6 +516,10 @@ void cast_scene() {
 
     // the cast loop, it shoots the rays.
     for (rays = 0; rays < RAYS_COUNT; rays++) {
+        int vertical_map_texture = 0;
+        int horizontal_map_texture = 0;
+
+
         // Cast/Check the Vertical Rays/Lines
         depth_of_field = 0;
         distance_v = MAX_UINT16;
@@ -337,7 +544,8 @@ void cast_scene() {
             max_x = (int)(rays_x) >> 6;
             max_y = (int)(rays_y) >> 6;
             main_position = max_y * MAP_WIDTH + max_x;
-            if (main_position > 0 && main_position < MAP_WIDTH * MAP_HEIGHT && MAP[main_position] == 1) {
+            if (main_position > 0 && main_position < MAP_WIDTH * MAP_HEIGHT && MAP_WALLS[main_position] > 0) {
+                vertical_map_texture = MAP_WALLS[main_position] - 1;
                 depth_of_field = 8;
                 distance_v = cos(degree_to_radian(rays_angle)) * (rays_x - player_pos_x) - sin(degree_to_radian(rays_angle)) * (rays_y - player_pos_y);
             } else {
@@ -374,7 +582,8 @@ void cast_scene() {
             max_x = (int)(rays_x) >> 6;
             max_y = (int)(rays_y) >> 6;
             main_position = max_y * MAP_WIDTH + max_x;
-            if (main_position > 0 && main_position < MAP_WIDTH * MAP_HEIGHT && MAP[main_position] == 1) {
+            if (main_position > 0 && main_position < MAP_WIDTH * MAP_HEIGHT && MAP_WALLS[main_position] > 0) {
+                horizontal_map_texture = MAP_WALLS[main_position] - 1;
                 depth_of_field = 8;
                 distance_h = cos(degree_to_radian(rays_angle)) * (rays_x - player_pos_x) - sin(degree_to_radian(rays_angle)) * (rays_y - player_pos_y);
             } else {
@@ -384,8 +593,11 @@ void cast_scene() {
             }
         }
 
+        float shading = 1.0;
         glColor3f(RGB_COLOR_GREEN_A80);
         if (distance_v < distance_h) {
+            horizontal_map_texture = vertical_map_texture;
+            shading = 0.5;
             rays_x = vertical_x;
             rays_y = vertical_y;
             distance_h = distance_v;
@@ -401,16 +613,102 @@ void cast_scene() {
         int cast_angle = fix_angle(player_angle - rays_angle);
         distance_h = distance_h * cos(degree_to_radian(cast_angle));
         int line_height = (MAP_CELL_SIZE * 540) / distance_h;
+        
+        float texture_y_offset = 0.0;
+        float texture_y_step = 32.0/(float)line_height;
+
         if (line_height > 540) {
+            texture_y_offset = (line_height - 540) / 2.0;
             line_height = 540;
         }
+        float texture_y = texture_y_offset * texture_y_step + horizontal_map_texture * 32;
+        float texture_x;
+        //if (rays_angle > 180) {
+        //    texture_x = 31 - texture_x;
+        //}
 
+        if (shading == 1) {
+            texture_x = (int)(rays_x / 2.0) % 32;
+            if (rays_angle > 180) {
+                texture_x = 31 - texture_x;
+            }
+        } else {
+            texture_x = (int)(rays_y / 2.0) % 32;
+            if (rays_angle > 90 && rays_angle < 270) {
+                texture_x = 31 - texture_x;
+            }
+        }
+
+        // Draws the Walls
         int line_offset = (WINDOW_HEIGHT / 2) - (line_height >> 1) + LINE_Y_OFFSET;
-        glLineWidth(DRAW_LINE_WIDTH_3D);
-        glBegin(GL_LINES);
-        glVertex2i(rays*DRAW_LINE_WIDTH_3D+(WINDOW_WIDTH/2) + LINE_X_OFFSET, line_offset+ LINE_X_OFFSET);
-        glVertex2i(rays*DRAW_LINE_WIDTH_3D+(WINDOW_WIDTH/2) + LINE_X_OFFSET, line_offset+ line_height+ LINE_X_OFFSET);
-        glEnd();
+        for (int _y = 0; _y < line_height; _y++) {
+            float color = ALL_TEXTURES[(int)(texture_y) * 32 + (int)(texture_x)] * shading;
+            switch (horizontal_map_texture) {
+                case 0:
+                    glColor3f(color, color / 2.0, color / 2.0);
+                    break;
+                case 1:
+                    glColor3f(color, color, color / 2.0);
+                    break;
+                case 2:
+                    glColor3f(color / 2.0, color, color / 2.0);
+                    break;
+                case 3:
+                    glColor3f(color / 2.0, color / 2.0, color);
+                    break;
+                default:
+                    glColor3f(color, color, color);
+                    break;
+            }
+            glPointSize(8);
+            glBegin(GL_POINTS);
+            glVertex2i(rays * DRAW_LINE_WIDTH_3D + (WINDOW_WIDTH / 2) + LINE_X_OFFSET, _y + line_offset + LINE_X_OFFSET);
+            glEnd();
+            texture_y += texture_y_step;
+        }
+
+        // Draws the Floor & Ceiling
+        for (int _y = line_offset + line_height; _y < (WINDOW_WIDTH / 2); _y++) {
+            // Calculates the projections
+            float delta_y = _y - ((float)WINDOW_WIDTH / 4);
+            float degrees = degree_to_radian(rays_angle);
+            float rays_angle_fix = cos(degree_to_radian(fix_angle(player_angle - rays_angle)));
+            int projection_angle = (int)((0.5 * MAP_WIDTH * MAP_CELL_SIZE) / ((0.5 * WINDOW_WIDTH) / (5.0 / MAP_HEIGHT * WINDOW_HEIGHT)));
+            texture_x = player_pos_x / 2 + cos(degrees) * projection_angle * 32 / delta_y / rays_angle_fix;
+            texture_y = player_pos_y / 2 - sin(degrees) * projection_angle * 32 / delta_y / rays_angle_fix;
+            
+            // Draws the Floor
+            int texture = MAP_FLOOR[(int)(texture_y / 32.0) * MAP_WIDTH + (int)(texture_x / 32.0)] * 32 * 32; // 1024 = 32 * 32
+            float color = ALL_TEXTURES[((int)(texture_y) & 31) * 32 + ((int)(texture_y) & 31) + texture] * 0.75;
+            glColor3f(color, color, color);
+            glPointSize(8);
+            glBegin(GL_POINTS);
+            glVertex2i(rays * DRAW_LINE_WIDTH_3D + (WINDOW_WIDTH / 2) + LINE_X_OFFSET, _y + LINE_X_OFFSET);
+            glEnd();
+
+            // Draws the Ceiling
+            texture = MAP_CEILING[(int)(texture_y / 32.0) * MAP_WIDTH + (int)(texture_x / 32.0)] * 32 * 32; // 1024 = 32 * 32
+            color = ALL_TEXTURES[((int)(texture_y) & 31) * 32 + ((int)(texture_y) & 31) + texture] * 0.75;
+            glColor3f(color, color, color);
+            glPointSize(8);
+            glBegin(GL_POINTS);
+            glVertex2i(rays * DRAW_LINE_WIDTH_3D + (WINDOW_WIDTH / 2) + LINE_X_OFFSET, WINDOW_HEIGHT - _y + LINE_X_OFFSET);
+            glEnd();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         rays_angle = fix_angle(rays_angle - 1);
     }
