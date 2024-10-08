@@ -23,7 +23,9 @@
 #include "cglm/affine.h"
 #include "cglm/types.h"
 
+#include <cglm/affine-pre.h>
 #include <cglm/mat4.h>
+#include <math.h>
 #include <stddef.h>
 #include <SDL2/SDL.h>
 #include <cglm/cglm.h>
@@ -91,21 +93,63 @@ void clear_renderer() {
 
 void draw_point(vec2 point, f32 size, vec4 color) {
     mat4 translation;
-    mat4 model;
-    mat4f f_model;
-    mat4 scale;
+    mat4f model;
 
     glm_mat4_identity(translation);
     glm_translate(translation, (vec3){point[0], point[1], 0});
+    glm_scale(translation, (vec3){size, size, 1.f});
 
-    // glm_mat4_copy(translation, model);
-    glm_mat4_copy(translation, scale);
-    glm_scale(scale, (vec3){size, size, 1.f});
-    glm_mat4_mul(scale, translation, model);
-
-    eglm_mat4_flatten(model, f_model);
+    eglm_mat4_flatten(translation, model);
     glUniform4fv(color_location, 1, color);
-    glUniformMatrix4fv(model_location, 1, GL_FALSE, f_model);
+    glUniformMatrix4fv(model_location, 1, GL_FALSE, model);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+}
+
+void draw_line(vec2 start, vec2 end, f32 line_width, vec4 color) {
+    // Calculate the length of the line (distance between start and end points)
+    f32 line_x = end[0] - start[0];
+    f32 line_y = end[1] - start[1];
+    f32 length = sqrtf((line_x * line_x) + (line_y * line_y));  // Length of the line
+    f32 angle = atan2f(line_y, line_x);  // Angle of the line
+
+    // Prepare model matrix
+    mat4 translation;
+    mat4f model;
+
+    // Identity matrix initialization
+    glm_mat4_identity(translation);
+
+    // Translate to the midpoint of the line
+    glm_translate(translation, (vec3){(start[0] + end[0]) / 2.f, (start[1] + end[1]) / 2.f, 0});
+
+    // Rotate by the calculated angle
+    glm_rotate_z(translation, angle, translation);
+
+    // Scale the line by its length (along the X-axis) and its width (Y-axis)
+    glm_scale(translation, (vec3){length, line_width, 1.f});
+
+    // Flatten and send the model matrix to the shader
+    eglm_mat4_flatten(translation, model);
+    glUniform4fv(color_location, 1, color);
+    glUniformMatrix4fv(model_location, 1, GL_FALSE, model);
+
+    // Draw the line (quad)
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+}
+
+
+void draw_quad(vec2 center, vec2 size,f32 angle, vec4 color) {
+    mat4 translation;
+    mat4f model;
+
+    glm_mat4_identity(translation);
+    glm_translate(translation, (vec3){center[0], center[1], 0});
+    glm_scale(translation, (vec3){size[0], size[1], 1.f});
+    glm_rotate_z(translation, angle, translation);
+
+    eglm_mat4_flatten(translation, model);
+    glUniform4fv(color_location, 1, color);
+    glUniformMatrix4fv(model_location, 1, GL_FALSE, model);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 }
 
@@ -136,8 +180,8 @@ static void init_quad() {
     };
 
     u32 indices[] = {
-        0, 1, 3, // 1 triangle
-        1, 2, 3, // 2 triangle
+        0, 1, 3, 
+        0, 2, 3,
     };
 
     GLuint vertex_array_object, vertex_buffer_object, element_buffer_object;

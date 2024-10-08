@@ -26,5 +26,7 @@ SDL_GLContext initialize_opengl(SDL_Window* window);
 void init_renderer(u16 width, u16 height);
 void clear_renderer();
 void draw_point(vec2 point, f32 size, vec4 color);
+void draw_line(vec2 start, vec2 end, f32 width, vec4 color);
+void draw_quad(vec2 center, vec2 size,f32 angle, vec4 color);
 
 #endif

@@ -13,12 +13,14 @@
 #include "cglm/types.h"
 
 #include <SDL2/SDL.h>
+#include <cglm/util.h>
 
 #define WINDOW_WIDTH    1280
 #define WINDOW_HEIGHT   720
 
 void game_loop(SDL_Window *window, GAME_STATE* game_state) {
     // Main loop
+    float angle = 0.f;
     while (*game_state != GAME_STATE_EXIT && *game_state == GAME_STATE_RUNNING) {
         // Handle events
         SDL_Event event;
@@ -33,12 +35,16 @@ void game_loop(SDL_Window *window, GAME_STATE* game_state) {
         // Clear the screen with the blue color
         clear_renderer();
 
-        draw_point((vec2){5.f, 5.f}, 10.f, (vec4){RGBA_ANSI_COLOR_WHITE_SYSTEM_A100});
+        draw_line((vec2){0.f, 0.f}, (vec2){WINDOW_WIDTH, WINDOW_HEIGHT}, 5.f, (vec4){RGBA_ANSI_COLOR_RED_SYSTEM_A100});
+        draw_line((vec2){WINDOW_WIDTH, 0.f}, (vec2){0.f, WINDOW_HEIGHT}, 5.f, (vec4){RGBA_ANSI_COLOR_RED_SYSTEM_A100});
+        draw_point((vec2){WINDOW_WIDTH / 2.f, WINDOW_HEIGHT / 2.f}, 64.f, (vec4){RGBA_ANSI_COLOR_WHITE_SYSTEM_A100});
+        draw_quad((vec2){WINDOW_WIDTH / 2.f, WINDOW_HEIGHT / 2.f}, (vec2){40.f, 40.f}, glm_rad(angle), (vec4){RGBA_ANSI_COLOR_BLACK_SYSTEM_A100});
 
 
         // Swap the buffers to display the blue screen
         SDL_GL_SwapWindow(window);
         SDL_Delay(16);  // Delay to limit the loop to ~60 FPS
+        angle += .5f;
     }
 }
 
