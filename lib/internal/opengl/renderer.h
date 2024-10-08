@@ -22,11 +22,25 @@
 
 #include "../types/types.h"
 
+// This function initializes the OpenGL Context
 SDL_GLContext initialize_opengl(SDL_Window* window);
+
+// This function initializes the OpenGL Renderer
 void init_renderer(u16 width, u16 height);
+
+// This function clears the OpenGL Renderer
 void clear_renderer();
+
+// This function draws an arbitrary point into the screen given it's coordinates
+// and color
 void draw_point(vec2 point, f32 size, vec4 color);
+
+// This function draws an arbitrary line into the screen given it's coordinates
+// width and color
 void draw_line(vec2 start, vec2 end, f32 width, vec4 color);
+
+// This function draws an arbitrary quad into the screen given it's coordinates
+// size and color
 void draw_quad(vec2 center, vec2 size,f32 angle, vec4 color);
 
 #endif

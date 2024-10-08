@@ -30,11 +30,17 @@
 #include <SDL2/SDL.h>
 #include <cglm/cglm.h>
 
-
+// This function initializes the shader (currently only one)
 static void init_shader();
+
+// This function initializes the drawing of a quad into the GPU
 static void init_quad();
+
+// This function initializes the orthographic projection
 static void init_projection();
 
+// We are currently defining the shaders sources here, but there is a plan
+// to load .glsl files.
 const str vertex_source = "#version 330 core\n"
     "layout(location = 0) in vec2 pos;\n"
     "uniform mat4 model;\n"
@@ -55,8 +61,8 @@ static GLuint program;
 static GLuint model_location;
 static GLuint color_location;
 
+// This function initializes the OpenGL Context
 SDL_GLContext initialize_opengl(SDL_Window* window) {
-    // Create an OpenGL context
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (!glContext) {
         fprintf(stderr, "Failed to create OpenGL context: %s\n", SDL_GetError());
@@ -77,6 +83,7 @@ SDL_GLContext initialize_opengl(SDL_Window* window) {
     return glContext;
 }
 
+// This function initializes the OpenGL Renderer
 void init_renderer(u16 w, u16 h) {
     glClearColor(RGBA_ANSI_COLOR_GREY23_A100);
     width = w;
@@ -87,10 +94,13 @@ void init_renderer(u16 w, u16 h) {
     init_projection();
 }
 
+// This function clears the OpenGL Renderer
 void clear_renderer() {
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
+// This function draws an arbitrary point into the screen given it's coordinates
+// and color
 void draw_point(vec2 point, f32 size, vec4 color) {
     mat4 translation;
     mat4f model;
@@ -105,6 +115,8 @@ void draw_point(vec2 point, f32 size, vec4 color) {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 }
 
+// This function draws an arbitrary line into the screen given it's coordinates
+// width and color
 void draw_line(vec2 start, vec2 end, f32 line_width, vec4 color) {
     // Calculate the length of the line (distance between start and end points)
     f32 line_x = end[0] - start[0];
@@ -137,7 +149,8 @@ void draw_line(vec2 start, vec2 end, f32 line_width, vec4 color) {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 }
 
-
+// This function draws an arbitrary quad into the screen given it's coordinates
+// size and color
 void draw_quad(vec2 center, vec2 size,f32 angle, vec4 color) {
     mat4 translation;
     mat4f model;
@@ -153,6 +166,7 @@ void draw_quad(vec2 center, vec2 size,f32 angle, vec4 color) {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 }
 
+// This function initializes the shader (currently only one)
 static void init_shader() {
     GLuint vertex = compile_shaders(GL_VERTEX_SHADER, vertex_source);
     GLuint fragment = compile_shaders(GL_FRAGMENT_SHADER, fragment_source);
@@ -163,8 +177,9 @@ static void init_shader() {
     color_location = glGetUniformLocation(program, "color");
 }
 
+// This function initializes the drawing of a quad into the GPU
 static void init_quad() {
-    // This will be the vertices of your quad.
+    // This will be the vertices of our quad.
     // the origin (0, 0) is on the middle, so:
     //      +x = right
     //      -x = left
@@ -203,6 +218,7 @@ static void init_quad() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+// This function initializes the orthographic projection
 static void init_projection() {
     mat4 projection;
     mat4f flat_projection;

@@ -9,11 +9,13 @@
 #include "../lib/internal/sdl/window.h"
 #include "../lib/internal/opengl/renderer.h"
 #include "../lib/internal/opengl/colors.h"
+#include "../lib/internal/files/wad/wad.h"
 
 #include "cglm/types.h"
 
 #include <SDL2/SDL.h>
 #include <cglm/util.h>
+#include <stdio.h>
 
 #define WINDOW_WIDTH    1280
 #define WINDOW_HEIGHT   720
@@ -60,6 +62,26 @@ int main() {
     
     GAME_STATE game_state = GAME_STATE_RUNNING;
     init_renderer(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    wad_t WAD;
+    if (load_wad_from_file("data/files/wad/doom1.wad", &WAD) != 0) {
+        printf("FAILED TO LOAD WAD FILE (doom1.wad)\n");
+        free_wad(&WAD);
+        return 2;
+        // Cleanup: Delete OpenGL context and window
+        SDL_GL_DeleteContext(glContext);
+        SDL_DestroyWindow(window);
+        
+        // Quit SDL subsystems
+        SDL_Quit();
+    }
+
+    printf("LOADED WAD FILE OF TYPE %s with %u lumps\n", WAD.id, WAD.number_of_lumps);
+    printf("LUMPS:\n");
+    for (u64 i = 0; i < WAD.number_of_lumps; i++) {
+        printf("\t%8s:\t%u\n", WAD.lumps[i].name, WAD.lumps[i].size);
+    }
+    free_wad(&WAD);
     game_loop(window, &game_state);
     // Cleanup: Delete OpenGL context and window
     SDL_GL_DeleteContext(glContext);

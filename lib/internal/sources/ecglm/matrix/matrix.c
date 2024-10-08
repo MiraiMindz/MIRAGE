@@ -18,10 +18,10 @@
 #include "../../../ecglm/matrix.h"
 #include "../../../types/types.h"
 
+// This function receives a CGLM mat4 (float[4][4]) and return a mat4f (float[16])
 void eglm_mat4_flatten(mat4 in_matrix, mat4f out_array) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            out_array[i * 4 + j] = in_matrix[i][j];
-        }
+    // This is the same as a double for-loop.
+    for (int idx = 0; idx < 16; idx++) {
+        out_array[idx] = in_matrix[idx / 4][idx % 4];
     }
 }

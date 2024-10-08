@@ -57,6 +57,7 @@ set(SOURCES
     lib/internal/sources/sdl/input/input.c
     lib/internal/sources/opengl/renderer/renderer.c
     lib/internal/sources/opengl/shaders/shaders.c
+    lib/internal/sources/files/wad/wad.c
 )
 
 # Add the executable target

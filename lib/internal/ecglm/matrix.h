@@ -19,6 +19,7 @@
 #include <cglm/types.h>
 #include "../types/types.h"
 
+// This function receives a CGLM mat4 (float[4][4]) and return a mat4f (float[16])
 void eglm_mat4_flatten(mat4 in_matrix, mat4f out_array);
 
 #endif
