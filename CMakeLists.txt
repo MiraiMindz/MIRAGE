@@ -23,7 +23,6 @@ add_compile_options(
     -fsanitize=address
 )
 
-
 # /usr/lib/libasan.so
 # Set policy for OpenGL to prefer GLVND
 cmake_policy(SET CMP0072 NEW)
@@ -58,6 +57,8 @@ set(SOURCES
     lib/internal/sources/opengl/renderer/renderer.c
     lib/internal/sources/opengl/shaders/shaders.c
     lib/internal/sources/files/wad/wad.c
+    lib/internal/sources/map/map.c
+    lib/internal/sources/emath/emath.c
 )
 
 # Add the executable target

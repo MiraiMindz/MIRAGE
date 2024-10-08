@@ -11,19 +11,38 @@
  *                                                  - The MIRAGE Developer Team
 *******************************************************************************/
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../../../files/wad/wad.h"
 #include "../../../types/types.h"
+#include "cglm/types.h"
 
-// This macro reads N bytes from any buffer in little endian
+
+// These macros are hard coded for now but will make them calculated next.
+#define THINGS_IDX      1
+#define SIDEDEFS_IDX    2
+#define LINEDEFS_IDX    3
+#define VERTEXES_IDX    4
+#define SEGS_IDX        5
+#define SUB_SECTORS     6
+#define NODES           7
+#define SECTORS         8
+
+// This macro reads 16 bytes from any buffer in little endian
+#define READ_LE16I(buffer, offset) \
+    ((buffer)[(offset)] | ((buffer)[(offset + 1)] << 8))
+
+// This macro reads 32 bytes from any buffer in little endian
 #define READ_LE32I(buffer, offset) ((buffer)[(offset)] | \
     ((buffer)[(offset + 1)] << 8) | \
     ((buffer)[(offset + 2)] << 16) | \
     ((buffer)[(offset + 3)] << 24))
 
+
+static void read_vertices(map_t* map, const lump_t* lump);
 
 i32 load_wad_from_file(const str filename, wad_t* wad) {
     if (wad == NULL) {
@@ -89,4 +108,56 @@ void free_wad(wad_t* wad) {
 
     wad->number_of_lumps = 0;
     // wad->directory_offset = 0;
+}
+
+i32 wad_find_lump(const str lump_name, const wad_t* wad) {
+    u64 lump_name_len = strlen(lump_name);
+    for (u64 i = 0; i < wad->number_of_lumps; i++) {
+        if ((strlen(wad->lumps[i].name) == lump_name_len) && (strcmp(wad->lumps[i].name, lump_name) == 0)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+i32 wad_read_map(const str map_name, map_t* map, const wad_t* wad) {
+    u64 map_index = wad_find_lump(map_name, wad);
+    if (map_index < 0) {
+        return 1;
+    }
+
+    read_vertices(map, &wad->lumps[map_index + VERTEXES_IDX]);
+
+    return 0;
+}
+
+static void read_vertices(map_t* map, const lump_t* lump) {
+    map->number_of_vertices = lump->size / 4; // each vertex is 2 + 2 = 4 bytes
+    map->vertices = malloc(sizeof(vec2) * map->number_of_vertices);
+
+    map->min[0] = INFINITY;
+    map->min[1] = INFINITY;
+    map->max[0] = -INFINITY;
+    map->max[1] = -INFINITY;
+
+    for (u32 i = 0, j = 0; i < lump->size; i += 4, j++) {
+        map->vertices[j][0] = (i16)READ_LE16I(lump->data, i);
+        map->vertices[j][1] = (i16)READ_LE16I(lump->data, i + 2);
+    
+        if (map->vertices[j][0] < map->min[0]) {
+            map->min[0] = map->vertices[j][0];
+        }
+    
+        if (map->vertices[j][1] < map->min[1]) {
+            map->min[1] = map->vertices[j][1];
+        }
+    
+        if (map->vertices[j][0] > map->max[0]) {
+            map->max[0] = map->vertices[j][0];
+        }
+    
+        if (map->vertices[j][1] > map->max[1]) {
+            map->max[1] = map->vertices[j][1];
+        }
+    }
 }
