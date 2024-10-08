@@ -14,6 +14,8 @@
  *                                                  - The MIRAGE Developer Team
 *******************************************************************************/
 
+#include "../../../sdl/window.h"
+
 #include <stdio.h>
 #include <SDL2/SDL.h>
 

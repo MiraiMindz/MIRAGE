@@ -14,9 +14,11 @@
  *                                                  - The MIRAGE Developer Team
 *******************************************************************************/
 
+#include "../../../types/types.h"
+#include "../../../sdl/input.h"
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
-#include "../../../types/types.h"
 
 // Function to handle keyboard input
 void handle_keyboard_input(SDL_Event *event, GAME_STATE *game_state) {

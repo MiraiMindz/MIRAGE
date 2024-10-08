@@ -52,13 +52,16 @@ add_subdirectory(lib/external/CGLM)
 # Source files
 set(SOURCES
     src/main.c
+    lib/internal/sources/ecglm/matrix/matrix.c
     lib/internal/sources/sdl/window/window.c
     lib/internal/sources/sdl/input/input.c
     lib/internal/sources/opengl/renderer/renderer.c
+    lib/internal/sources/opengl/shaders/shaders.c
 )
 
 # Add the executable target
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Link the necessary libraries
+# target_link_libraries(${LIBRARY_NAME} PRIVATE cglm_headers)
 target_link_libraries(${PROJECT_NAME} asan  ${SDL2_LIBRARIES} ${OPENGL_gl_LIBRARY} glad cglm m dl)

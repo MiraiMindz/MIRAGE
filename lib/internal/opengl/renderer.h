@@ -18,6 +18,13 @@
 #define RENDERER_H
 
 #include <SDL2/SDL.h>
+#include <cglm/types.h>
+
+#include "../types/types.h"
+
 SDL_GLContext initialize_opengl(SDL_Window* window);
+void init_renderer(u16 width, u16 height);
+void clear_renderer();
+void draw_point(vec2 point, f32 size, vec4 color);
 
 #endif
