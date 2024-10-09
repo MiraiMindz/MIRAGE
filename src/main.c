@@ -56,8 +56,11 @@ void game_loop(SDL_Window *window, GAME_STATE* game_state, map_t* map) {
         clear_renderer();
 
         for (isize i = 0; i < map->number_of_vertices; i++) {
-            // printf("DRAWING POINT: %f\t%f\n", map->vertices[i][0], map->vertices[i][0]);
-            draw_point(map->vertices[i], 2.f, (vec4){RGBA_ANSI_COLOR_WHITE_SYSTEM_A100});
+            draw_line(map->vertices[map->linedefs[i].start_index], map->vertices[map->linedefs[i].end_index], 2.f, (vec4){RGBA_ANSI_COLOR_WHITE_SYSTEM_A100});
+        }
+
+        for (isize i = 0; i < map->number_of_vertices; i++) {
+            draw_point(map->vertices[i], 4.f, (vec4){RGBA_ANSI_COLOR_YELLOW_SYSTEM_A100});
         }
 
 
@@ -97,7 +100,7 @@ int main() {
     // test_wad_loading(&WAD);
 
     map_t MAP;
-    if (wad_read_map("E1M1", &MAP, &WAD) != 0) {
+    if (wad_read_map("E1M2", &MAP, &WAD) != 0) {
         printf("FAILED TO LOAD MAP FROM WAD FILE (E1M1@doom1.wad)\n");
         free_wad(&WAD);
         // Cleanup: Delete OpenGL context and window
@@ -134,12 +137,18 @@ int main() {
     NEW_MAP.max[1] = MAP.max[1];
     NEW_MAP.min[0] = MAP.min[0];
     NEW_MAP.min[1] = MAP.min[1];
+    NEW_MAP.number_of_linedefs = MAP.number_of_linedefs;
 
 
     NEW_MAP.vertices = malloc(sizeof(vec2) * NEW_MAP.number_of_vertices);
     for (isize i = 0; i < MAP.number_of_vertices; i++) {
         NEW_MAP.vertices[i][0] = remapped_vertices[i][0];
         NEW_MAP.vertices[i][1] = remapped_vertices[i][1];
+    }
+    
+    NEW_MAP.linedefs = malloc(sizeof(linedef_t) * NEW_MAP.number_of_linedefs);
+    for (isize i = 0; i < MAP.number_of_linedefs; i++) {
+        NEW_MAP.linedefs[i] = MAP.linedefs[i];
     }
 
     // test_map_loading(&MAP);

@@ -17,14 +17,15 @@
 #include <string.h>
 
 #include "../../../files/wad/wad.h"
+#include "../../../map/map.h"
 #include "../../../types/types.h"
 #include "cglm/types.h"
 
 
 // These macros are hard coded for now but will make them calculated next.
 #define THINGS_IDX      1
-#define SIDEDEFS_IDX    2
-#define LINEDEFS_IDX    3
+#define LINEDEFS_IDX    2
+#define SIDEDEFS_IDX    3
 #define VERTEXES_IDX    4
 #define SEGS_IDX        5
 #define SUB_SECTORS     6
@@ -43,6 +44,7 @@
 
 
 static void read_vertices(map_t* map, const lump_t* lump);
+static void read_linedefs(map_t* map, const lump_t* lump);
 
 i32 load_wad_from_file(const str filename, wad_t* wad) {
     if (wad == NULL) {
@@ -127,6 +129,8 @@ i32 wad_read_map(const str map_name, map_t* map, const wad_t* wad) {
     }
 
     read_vertices(map, &wad->lumps[map_index + VERTEXES_IDX]);
+    read_linedefs(map, &wad->lumps[map_index + LINEDEFS_IDX]);
+
 
     return 0;
 }
@@ -159,5 +163,15 @@ static void read_vertices(map_t* map, const lump_t* lump) {
         if (map->vertices[j][1] > map->max[1]) {
             map->max[1] = map->vertices[j][1];
         }
+    }
+}
+
+static void read_linedefs(map_t* map, const lump_t* lump) {
+    map->number_of_linedefs = lump->size / 14; // the linedef is 14 bytes in size
+    map->linedefs = malloc(sizeof(linedef_t) * map->number_of_linedefs);
+
+    for (u32 i = 0, j = 0; i < lump->size; i += 14, j++) {
+        map->linedefs[j].start_index = READ_LE16I(lump->data, i);
+        map->linedefs[j].end_index = READ_LE16I(lump->data, i + 2);
     }
 }

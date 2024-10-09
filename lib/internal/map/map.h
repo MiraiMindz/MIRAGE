@@ -19,11 +19,18 @@
 #include "../types/types.h"
 #include <cglm/types.h>
 
+typedef struct linedef {
+    u16 start_index, end_index;
+} linedef_t;
+
 typedef struct map {
     isize number_of_vertices;
     vec2* vertices;
 
     vec2 min, max;
+
+    isize number_of_linedefs;
+    linedef_t* linedefs;
 } map_t;
 
 void free_map(map_t* map);
