@@ -59,6 +59,9 @@ set(SOURCES
     lib/internal/sources/files/wad/wad.c
     lib/internal/sources/map/map.c
     lib/internal/sources/emath/emath.c
+    lib/internal/sources/opengl/mesh/mesh.c
+    lib/internal/sources/engine/engine.c
+    lib/internal/sources/camera/camera.c
 )
 
 # Add the executable target

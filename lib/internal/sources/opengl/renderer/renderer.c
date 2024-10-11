@@ -8,27 +8,24 @@
  *  - Transformation
  *  - Shaders
  *  - others
- * please be aware of the constant change of this engine internals as it's 
+ * please be aware of the constant change of this engine internals as it's
  * always evolving to be more error-prone and easy to use, so expect to have big
  * changes between releases.
  *                                                  - The MIRAGE Developer Team
-*******************************************************************************/
+ *******************************************************************************/
 
-#include "../../../../internal/types/types.h"
 #include "../../../../internal/opengl/renderer.h"
+#include "../../../../internal/ecglm/matrix.h"
 #include "../../../../internal/opengl/colors.h"
 #include "../../../../internal/opengl/shaders.h"
-#include "../../../../internal/opengl/shaders.h"
-#include "../../../../internal/ecglm/matrix.h"
-#include "cglm/affine.h"
-#include "cglm/types.h"
+#include "../../../../internal/types/types.h"
+#include "../../../emath/emath.h"
+#include "../../../opengl/mesh.h"
 
-#include <cglm/affine-pre.h>
-#include <cglm/mat4.h>
-#include <math.h>
-#include <stddef.h>
 #include <SDL2/SDL.h>
 #include <cglm/cglm.h>
+#include <math.h>
+#include <stddef.h>
 
 // This function initializes the shader (currently only one)
 static void init_shader();
@@ -41,31 +38,36 @@ static void init_projection();
 
 // We are currently defining the shaders sources here, but there is a plan
 // to load .glsl files.
-const str vertex_source = "#version 330 core\n"
+const str vertex_source =
+    "#version 330 core\n"
     "layout(location = 0) in vec2 pos;\n"
     "uniform mat4 model;\n"
     "uniform mat4 projection;\n"
+    "uniform mat4 view;\n"
     "void main() {\n"
-    "   gl_Position = projection * model  * vec4(pos, 0.0, 1.0);\n"
+    "   gl_Position = projection * view * model  * vec4(pos, 0.0, 1.0);\n"
     "}\n";
 
 const str fragment_source = "#version 330 core\n"
-    "out vec4 fragColor;\n"
-    "uniform vec4 color;\n"
-    "void main() {\n"
-    "   fragColor = color;\n"
-    "}\n";
+                            "out vec4 fragColor;\n"
+                            "uniform vec4 color;\n"
+                            "void main() {\n"
+                            "   fragColor = color;\n"
+                            "}\n";
 
 static u16 width, height;
 static GLuint program;
-static GLuint model_location;
+static GLuint model_location, view_location, projection_location;
 static GLuint color_location;
 
+static mesh_t quad_mesh;
+
 // This function initializes the OpenGL Context
-SDL_GLContext initialize_opengl(SDL_Window* window) {
+SDL_GLContext initialize_opengl(SDL_Window *window) {
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (!glContext) {
-        fprintf(stderr, "Failed to create OpenGL context: %s\n", SDL_GetError());
+        fprintf(stderr, "Failed to create OpenGL context: %s\n",
+                SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_Quit();
         return NULL;
@@ -95,8 +97,26 @@ void init_renderer(u16 w, u16 h) {
 }
 
 // This function clears the OpenGL Renderer
-void clear_renderer() {
-    glClear(GL_COLOR_BUFFER_BIT);
+void clear_renderer() { glClear(GL_COLOR_BUFFER_BIT); }
+
+// Allows the program to set the view matrix
+void set_view(mat4f view) {
+    glUniformMatrix4fv(view_location, 1, GL_FALSE, view);
+}
+
+void set_projection(mat4f projection) {
+    glUniformMatrix4fv(projection_location, 1, GL_FALSE, projection);
+}
+
+// This function draws an arbitrary mesh into the screen given it's
+// transformation and color
+void draw_mesh(const mesh_t *mesh, mat4f transformation, vec4 color) {
+    glUniform4fv(color_location, 1, color);
+    glUniformMatrix4fv(model_location, 1, GL_FALSE, transformation);
+    glBindVertexArray(mesh->vertex_array_object);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer_object);
+    glDrawElements(GL_TRIANGLES, mesh->number_of_indices, GL_UNSIGNED_INT,
+                   NULL);
 }
 
 // This function draws an arbitrary point into the screen given it's coordinates
@@ -110,9 +130,8 @@ void draw_point(vec2 point, f32 size, vec4 color) {
     glm_scale(translation, (vec3){size, size, 1.f});
 
     eglm_mat4_flatten(translation, model);
-    glUniform4fv(color_location, 1, color);
-    glUniformMatrix4fv(model_location, 1, GL_FALSE, model);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+
+    draw_mesh(&quad_mesh, model, color);
 }
 
 // This function draws an arbitrary line into the screen given it's coordinates
@@ -121,8 +140,9 @@ void draw_line(vec2 start, vec2 end, f32 line_width, vec4 color) {
     // Calculate the length of the line (distance between start and end points)
     f32 line_x = end[0] - start[0];
     f32 line_y = end[1] - start[1];
-    f32 length = sqrtf((line_x * line_x) + (line_y * line_y));  // Length of the line
-    f32 angle = atan2f(line_y, line_x);  // Angle of the line
+    f32 length =
+        sqrtf((line_x * line_x) + (line_y * line_y)); // Length of the line
+    f32 angle = atan2f(line_y, line_x);               // Angle of the line
 
     // Prepare model matrix
     mat4 translation;
@@ -132,7 +152,8 @@ void draw_line(vec2 start, vec2 end, f32 line_width, vec4 color) {
     glm_mat4_identity(translation);
 
     // Translate to the midpoint of the line
-    glm_translate(translation, (vec3){(start[0] + end[0]) / 2.f, (start[1] + end[1]) / 2.f, 0});
+    glm_translate(translation, (vec3){(start[0] + end[0]) / 2.f,
+                                      (start[1] + end[1]) / 2.f, 0});
 
     // Rotate by the calculated angle
     glm_rotate_z(translation, angle, translation);
@@ -142,16 +163,13 @@ void draw_line(vec2 start, vec2 end, f32 line_width, vec4 color) {
 
     // Flatten and send the model matrix to the shader
     eglm_mat4_flatten(translation, model);
-    glUniform4fv(color_location, 1, color);
-    glUniformMatrix4fv(model_location, 1, GL_FALSE, model);
 
-    // Draw the line (quad)
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+    draw_mesh(&quad_mesh, model, color);
 }
 
 // This function draws an arbitrary quad into the screen given it's coordinates
 // size and color
-void draw_quad(vec2 center, vec2 size,f32 angle, vec4 color) {
+void draw_quad(vec2 center, vec2 size, f32 angle, vec4 color) {
     mat4 translation;
     mat4f model;
 
@@ -161,9 +179,7 @@ void draw_quad(vec2 center, vec2 size,f32 angle, vec4 color) {
     glm_rotate_z(translation, angle, translation);
 
     eglm_mat4_flatten(translation, model);
-    glUniform4fv(color_location, 1, color);
-    glUniformMatrix4fv(model_location, 1, GL_FALSE, model);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+    draw_mesh(&quad_mesh, model, color);
 }
 
 // This function initializes the shader (currently only one)
@@ -173,7 +189,9 @@ static void init_shader() {
     program = link_program(2, vertex, fragment);
 
     glUseProgram(program);
+    projection_location = glGetUniformLocation(program, "projection");
     model_location = glGetUniformLocation(program, "model");
+    view_location = glGetUniformLocation(program, "view");
     color_location = glGetUniformLocation(program, "color");
 }
 
@@ -186,33 +204,19 @@ static void init_quad() {
     //      +y = top
     //      -y = bottom
     // our quad will be 1 unit in size
-    f32 vertices[] = {
-    //   X       Y
-        .5f,    .5f,   // top-right
-        .5f,   -.5f,   // bottom-right
-       -.5f,    .5f,   // top-left
-       -.5f,   -.5f,   // bottom-left
+    vertex_t vertices[] = {
+        //   X       Y      Z
+        {.position = {.5f, .5f, 0.f}},   // top-right
+        {.position = {.5f, -.5f, 0.f}},  // bottom-right
+        {.position = {-.5f, .5f, 0.f}},  // top-left
+        {.position = {-.5f, -.5f, 0.f}}, // bottom-left
     };
 
     u32 indices[] = {
-        0, 1, 3, 
-        0, 2, 3,
+        0, 1, 3, 0, 2, 3,
     };
 
-    GLuint vertex_array_object, vertex_buffer_object, element_buffer_object;
-    glGenVertexArrays(1, &vertex_array_object);
-    glGenBuffers(1, &vertex_buffer_object);
-    glGenBuffers(1, &element_buffer_object);
-
-    glBindVertexArray(vertex_array_object);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(f32), NULL);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_object);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    create_mesh(&quad_mesh, 4, vertices, 6, indices);
 
     // unbind only vertex_buffer_object
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -222,8 +226,23 @@ static void init_quad() {
 static void init_projection() {
     mat4 projection;
     mat4f flat_projection;
+
     glm_ortho(0.f, (f32)width, (f32)height, 0.f, -1.f, 1.f, projection);
-    GLuint projection_location = glGetUniformLocation(program, "projection");
+    GLuint glprojection_location = glGetUniformLocation(program, "projection");
     eglm_mat4_flatten(projection, flat_projection);
-    glUniformMatrix4fv(projection_location, 1, GL_FALSE, flat_projection);
+    glUniformMatrix4fv(glprojection_location, 1, GL_FALSE, flat_projection);
+
+    // PLACEHOLDER FOR THE VIEW PROJECTION
+    mat4f flat_identity_mat;
+    mat4 identity_mat;
+    glm_mat4_identity(identity_mat);
+    eglm_mat4_flatten(identity_mat, flat_identity_mat);
+    set_view(flat_identity_mat);
+}
+
+f32 get_width() { return width; }
+f32 get_height() { return height; }
+void get_dimensions(vec2 dest) {
+    dest[0] = width;
+    dest[1] = height;
 }

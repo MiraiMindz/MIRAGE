@@ -7,24 +7,44 @@
  * not covered by standard C math library, like:
  *  - min and max
  *  - others
- * please be aware of the constant change of this engine internals as it's 
+ * please be aware of the constant change of this engine internals as it's
  * always evolving to be more error-prone and easy to use, so expect to have big
  * changes between releases.
  *                                                  - The MIRAGE Developer Team
-*******************************************************************************/
+ *******************************************************************************/
 #ifndef EMATH_H
 #define EMATH_H
 
 #include "../types/types.h"
-#define GENERIC_MAX(x, y) ({\
-    __auto_type __x = (x);\
-    __auto_type __y = (y);\
-    __x > __y ? __X : __y;})
+#define GENERIC_MAX(x, y)                                                      \
+    ({                                                                         \
+        __auto_type __x = (x);                                                 \
+        __auto_type __y = (y);                                                 \
+        __x > __y ? __X : __y;                                                 \
+    })
 
-#define GENERIC_MIN(x, y) ({\
-    __auto_type __x = (x);\
-    __auto_type __y = (y);\
-    __x < __y ? __X : __y;})
+#define GENERIC_MIN(x, y)                                                      \
+    ({                                                                         \
+        __auto_type __x = (x);                                                 \
+        __auto_type __y = (y);                                                 \
+        __x < __y ? __X : __y;                                                 \
+    })
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846 // π
+#endif
+
+#ifndef M_PI_2
+#define M_PI_2 (M_PI / 2.0) // π/2
+#endif
+
+#ifndef M_PI_3
+#define M_PI_3 (M_PI / 3.0) // π/3
+#endif
+
+#ifndef M_PI_4
+#define M_PI_4 (M_PI / 4.0) // π/4
+#endif
 
 // // These functions return the minimum value between two values
 // extern inline f32 emath_min_f32(f32 x, f32 y);
@@ -82,6 +102,4 @@ i64 emath_max_i64(i64 x, i64 y);
 usize emath_max_usize(usize x, usize y);
 isize emath_max_isize(isize x, isize y);
 
-
 #endif
-

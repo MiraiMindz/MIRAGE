@@ -19,8 +19,11 @@
 #include "../types/types.h"
 #include <cglm/types.h>
 
+#define LINEDEF_FLAGS_TWO_SIDED 0x0004
+
 typedef struct linedef {
     u16 start_index, end_index;
+    u16 flags;
 } linedef_t;
 
 typedef struct map {
