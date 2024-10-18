@@ -46,6 +46,4 @@ typedef ssize_t  isize;
 typedef void*    ptr; 
 typedef char*    str;
 
-typedef float mat4f[16];
-
 #endif

@@ -22,13 +22,12 @@ void engine_init(wad_t *wad, const str mapname) {
         .pitch = 0.f,
     };
 
-    mat4 perspective;
-    vec2 size;
-    get_dimensions(size);
-    printf("size[0] %.2f\n", size[0]);
-    printf("size[1] %.2f\n", size[1]);
+    evec2_t size = get_dimensions();
+    printf("size[0] %.2f\n", size.x);
+    printf("size[1] %.2f\n", size.y);
 
-    glm_perspective(FOV, size[0] / size[1], .1f, 1000.f, perspective);
+    emat4_t projection = eglm_mat4_perspective(FOV, size.x / size.y, .1f, 1000.f);
+    set_projection(projection);
 
     map_t MAP;
     if (wad_read_map(mapname, &MAP, wad) != 0) {
@@ -58,7 +57,8 @@ void engine_init(wad_t *wad, const str mapname) {
     };
 
     u32 indices[] = {
-        0, 1, 3, 0, 2, 3,
+        0, 1, 3,    // 1st triangle
+        1, 2, 3,    // 2nd triangle
     };
 
     create_mesh(&quad_mesh_g, 4, vertices, 6, indices);
@@ -75,28 +75,11 @@ void engine_update(f32 delta_time) {
 }
 
 void engine_renderer() {
-    mat4 camera_view;
-    mat4f camera_view_flat;
-    vec3 camera_pos_for_sum;
-
-    glm_vec3_add(camera_g.position, camera_g.forward, camera_pos_for_sum);
-    glm_look(camera_g.position, camera_pos_for_sum, camera_g.up, camera_view);
-    eglm_mat4_flatten(camera_view, camera_view_flat);
-
-    set_view(camera_view_flat);
-
-    mat4 identity_matrix;
-    mat4f flat_identity_matrix;
-    eglm_mat4_flatten(identity_matrix, flat_identity_matrix);
-
-    printf("RENDER ====================================================\n");
-    for (u8 i = 0; i < 16; i++) {
-        printf("camera_view_flat[%d] = %.f\n", i, camera_view_flat[i]);
-        printf("flat_identity_matrix[%d] = %.f\n", i, flat_identity_matrix[i]);
-    }
+    emat4_t camera_view = eglm_mat4_look(camera_g.position, eglm_vec3_add(camera_g.position, camera_g.forward), camera_g.up);
+    set_view(camera_view);
 
     // NOTE:
     // https://github.com/Yousaf-Wajih/doom/commit/5927daf16bf3759cb69dffa873e02ced7fb6a1fa
     // FIX: THIS ISN'T WORKING
-    draw_mesh(&quad_mesh_g, flat_identity_matrix, (vec4){1.f, 1.f, 1.f, 1.f});
+    draw_mesh(&quad_mesh_g, eglm_mat4_identity(), (vec4){1.f, 1.f, 1.f, 1.f});
 }

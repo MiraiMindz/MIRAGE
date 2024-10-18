@@ -17,6 +17,7 @@
 #define MAP_H
 
 #include "../types/types.h"
+#include "../ecglm/matrix.h"
 #include <cglm/types.h>
 
 #define LINEDEF_FLAGS_TWO_SIDED 0x0004
@@ -28,9 +29,11 @@ typedef struct linedef {
 
 typedef struct map {
     isize number_of_vertices;
-    vec2* vertices;
+    evec2_t* vertices;
+    // vec2* vertices;
 
-    vec2 min, max;
+    // vec2 min, max;
+    evec2_t min, max;
 
     isize number_of_linedefs;
     linedef_t* linedefs;

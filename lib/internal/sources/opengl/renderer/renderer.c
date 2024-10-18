@@ -20,6 +20,7 @@
 #include "../../../../internal/opengl/shaders.h"
 #include "../../../../internal/types/types.h"
 #include "../../../emath/emath.h"
+#include "../../../ecglm/matrix.h"
 #include "../../../opengl/mesh.h"
 
 #include <SDL2/SDL.h>
@@ -100,19 +101,19 @@ void init_renderer(u16 w, u16 h) {
 void clear_renderer() { glClear(GL_COLOR_BUFFER_BIT); }
 
 // Allows the program to set the view matrix
-void set_view(mat4f view) {
-    glUniformMatrix4fv(view_location, 1, GL_FALSE, view);
+void set_view(emat4_t view) {
+    glUniformMatrix4fv(view_location, 1, GL_FALSE, view.flat);
 }
 
-void set_projection(mat4f projection) {
-    glUniformMatrix4fv(projection_location, 1, GL_FALSE, projection);
+void set_projection(emat4_t projection) {
+    glUniformMatrix4fv(projection_location, 1, GL_FALSE, projection.flat);
 }
 
 // This function draws an arbitrary mesh into the screen given it's
 // transformation and color
-void draw_mesh(const mesh_t *mesh, mat4f transformation, vec4 color) {
-    glUniform4fv(color_location, 1, color);
-    glUniformMatrix4fv(model_location, 1, GL_FALSE, transformation);
+void draw_mesh(const mesh_t *mesh, emat4_t transformation, evec4_t color) {
+    glUniform4fv(color_location, 1, color.array);
+    glUniformMatrix4fv(model_location, 1, GL_FALSE, transformation.flat);
     glBindVertexArray(mesh->vertex_array_object);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->element_buffer_object);
     glDrawElements(GL_TRIANGLES, mesh->number_of_indices, GL_UNSIGNED_INT,
@@ -121,64 +122,56 @@ void draw_mesh(const mesh_t *mesh, mat4f transformation, vec4 color) {
 
 // This function draws an arbitrary point into the screen given it's coordinates
 // and color
-void draw_point(vec2 point, f32 size, vec4 color) {
-    mat4 translation;
-    mat4f model;
+void draw_point(evec2_t point, f32 size, evec4_t color) {
+    emat4_t model;
 
-    glm_mat4_identity(translation);
-    glm_translate(translation, (vec3){point[0], point[1], 0});
-    glm_scale(translation, (vec3){size, size, 1.f});
+    glm_mat4_identity(model.matrix);
+    glm_translate(model.matrix, (vec3){point.x, point.y, 0});
+    glm_scale(model.matrix, (vec3){size, size, 1.f});
 
-    eglm_mat4_flatten(translation, model);
 
     draw_mesh(&quad_mesh, model, color);
 }
 
 // This function draws an arbitrary line into the screen given it's coordinates
 // width and color
-void draw_line(vec2 start, vec2 end, f32 line_width, vec4 color) {
+void draw_line(evec2_t start, evec2_t end, f32 line_width, evec4_t color) {
     // Calculate the length of the line (distance between start and end points)
-    f32 line_x = end[0] - start[0];
-    f32 line_y = end[1] - start[1];
+    f32 line_x = end.x - start.x;
+    f32 line_y = end.y - start.y;
     f32 length =
         sqrtf((line_x * line_x) + (line_y * line_y)); // Length of the line
     f32 angle = atan2f(line_y, line_x);               // Angle of the line
 
     // Prepare model matrix
-    mat4 translation;
-    mat4f model;
+    emat4_t model;
 
     // Identity matrix initialization
-    glm_mat4_identity(translation);
+    glm_mat4_identity(model.matrix);
 
     // Translate to the midpoint of the line
-    glm_translate(translation, (vec3){(start[0] + end[0]) / 2.f,
-                                      (start[1] + end[1]) / 2.f, 0});
+    glm_translate(model.matrix, (vec3){(start.x + end.x) / 2.f,
+                                      (start.y + end.y) / 2.f, 0});
 
     // Rotate by the calculated angle
-    glm_rotate_z(translation, angle, translation);
+    glm_rotate_z(model.matrix, angle, model.matrix);
 
     // Scale the line by its length (along the X-axis) and its width (Y-axis)
-    glm_scale(translation, (vec3){length, line_width, 1.f});
-
-    // Flatten and send the model matrix to the shader
-    eglm_mat4_flatten(translation, model);
+    glm_scale(model.matrix, (vec3){length, line_width, 1.f});
 
     draw_mesh(&quad_mesh, model, color);
 }
 
 // This function draws an arbitrary quad into the screen given it's coordinates
 // size and color
-void draw_quad(vec2 center, vec2 size, f32 angle, vec4 color) {
-    mat4 translation;
-    mat4f model;
+void draw_quad(evec2_t center, evec2_t size, f32 angle, evec4_t color) {
+    emat4_t model;
 
-    glm_mat4_identity(translation);
-    glm_translate(translation, (vec3){center[0], center[1], 0});
-    glm_scale(translation, (vec3){size[0], size[1], 1.f});
-    glm_rotate_z(translation, angle, translation);
+    glm_mat4_identity(model.matrix);
+    glm_translate(model.matrix, (vec3){center.x, center.y, 0});
+    glm_scale(model.matrix, (vec3){size.x, size.y, 1.f});
+    glm_rotate_z(model.matrix, angle, model.matrix);
 
-    eglm_mat4_flatten(translation, model);
     draw_mesh(&quad_mesh, model, color);
 }
 
@@ -224,25 +217,21 @@ static void init_quad() {
 
 // This function initializes the orthographic projection
 static void init_projection() {
-    mat4 projection;
-    mat4f flat_projection;
+    emat4_t projection;
 
-    glm_ortho(0.f, (f32)width, (f32)height, 0.f, -1.f, 1.f, projection);
+    glm_ortho(0.f, (f32)width, (f32)height, 0.f, -1.f, 1.f, projection.matrix);
     GLuint glprojection_location = glGetUniformLocation(program, "projection");
-    eglm_mat4_flatten(projection, flat_projection);
-    glUniformMatrix4fv(glprojection_location, 1, GL_FALSE, flat_projection);
+    glUniformMatrix4fv(glprojection_location, 1, GL_FALSE, projection.flat);
 
     // PLACEHOLDER FOR THE VIEW PROJECTION
-    mat4f flat_identity_mat;
-    mat4 identity_mat;
-    glm_mat4_identity(identity_mat);
-    eglm_mat4_flatten(identity_mat, flat_identity_mat);
-    set_view(flat_identity_mat);
+    emat4_t identity;
+    glm_mat4_identity(identity.matrix);
+    set_view(identity);
 }
 
-f32 get_width() { return width; }
-f32 get_height() { return height; }
-void get_dimensions(vec2 dest) {
-    dest[0] = width;
-    dest[1] = height;
+evec2_t get_dimensions() {
+    return (evec2_t){
+        width,
+        height
+    };
 }

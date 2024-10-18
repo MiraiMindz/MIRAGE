@@ -13,7 +13,8 @@
  *                                                  - The MIRAGE Developer Team
 *******************************************************************************/
 
-#include <cglm/types.h>
+#include <cglm/cglm.h>
+#include <cglm/mat4.h>
 
 #include "../../../ecglm/matrix.h"
 #include "../../../types/types.h"
@@ -24,4 +25,38 @@ void eglm_mat4_flatten(mat4 in_matrix, mat4f out_array) {
     for (int idx = 0; idx < 16; idx++) {
         out_array[idx] = in_matrix[idx / 4][idx % 4];
     }
+}
+
+evec3_t eglm_vec3_crossn(evec3_t a, evec3_t b) {
+    evec3_t result;
+    glm_vec3_crossn(a.array, b.array, result.array);
+    return result;
+}
+
+evec3_t eglm_vec3_zero() {
+    return (evec3_t){0.f, 0.f, 0.f};
+}
+
+emat4_t eglm_mat4_look(evec3_t eye, evec3_t dir, evec3_t up) {
+    emat4_t result;
+    glm_look(eye.array, dir.array, up.array, result.matrix);
+    return result;
+}
+evec3_t eglm_vec3_add(evec3_t a, evec3_t b) {
+    evec3_t result;
+    glm_vec3_add(a.array, b.array, result.array);
+    return result;
+}
+
+emat4_t eglm_mat4_identity() {
+    emat4_t result;
+    glm_mat4_zero(result.matrix);
+    glm_mat4_identity(result.matrix);
+    return result;
+}
+
+emat4_t eglm_mat4_perspective(float fovy, float aspect, float nearZ, float farZ) {
+    emat4_t result;
+    glm_perspective(fovy, aspect, nearZ, farZ, result.matrix);
+    return result;
 }
